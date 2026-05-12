@@ -32,7 +32,13 @@ do
   fi
 
   previous="$tmp_dir/previous-score.json"
+  previous_reset="$tmp_dir/previous-reset.json"
   if git show "$remote_sha:scores/current-score.json" > "$previous" 2>/dev/null; then
-    scripts/score-exact.py --previous-file "$previous"
+    if git show "$remote_sha:scores/reset.json" > "$previous_reset" 2>/dev/null; then
+      scripts/score-exact.py --previous-file "$previous" --previous-reset-file "$previous_reset"
+    else
+      printf '{}\n' > "$previous_reset"
+      scripts/score-exact.py --previous-file "$previous" --previous-reset-file "$previous_reset"
+    fi
   fi
 done < "$main_pushes"

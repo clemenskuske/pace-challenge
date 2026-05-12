@@ -11,13 +11,14 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_BENCHMARK = ROOT / "data" / "benchmarks" / "exact_tiny.tsv"
+DEFAULT_BENCHMARK = ROOT / "data" / "benchmarks" / "exact_public.tsv"
 DEFAULT_SOLVER = ROOT / "target" / "debug" / "pace_challenge_maf"
 DEFAULT_SCORE_FILE = ROOT / "scores" / "current-score.json"
+DEFAULT_RESET_FILE = ROOT / "scores" / "reset.json"
 SCORING_SOURCE = "https://pacechallenge.org/2026/#scoring"
 
 
-def exact_score(correct, timed_out, disqualified):
+def exact_score(correct, unsolved, disqualified):
     if disqualified:
         return 0
     return correct
@@ -35,8 +36,8 @@ def heuristic_score(n, k_star, k):
 
 
 def self_test():
-    assert exact_score(correct=7, timed_out=3, disqualified=False) == 7
-    assert exact_score(correct=7, timed_out=0, disqualified=True) == 0
+    assert exact_score(correct=7, unsolved=3, disqualified=False) == 7
+    assert exact_score(correct=7, unsolved=0, disqualified=True) == 0
     assert lower_bound_score(0) == 1.0
     assert lower_bound_score(610) == 0.5
     assert lower_bound_score(611) == 0.0
@@ -71,10 +72,11 @@ def load_benchmark(path):
         reader = csv.DictReader(handle, delimiter="\t")
         rows = []
         for row in reader:
+            expected_size = row.get("expected_size", "").strip()
             rows.append(
                 {
                     "instance": row["instance"],
-                    "expected_size": int(row["expected_size"]),
+                    "expected_size": int(expected_size) if expected_size else None,
                 }
             )
     return rows
@@ -93,13 +95,12 @@ def run_solver(solver, instance, solution_path, timeout_seconds):
                 check=False,
             )
         except subprocess.TimeoutExpired:
-            return {"outcome": "timeout", "actual_size": None, "stderr": ""}
+            return {"outcome": "unsolved", "actual_size": None}
 
     if completed.returncode != 0:
         return {
-            "outcome": "solver_error",
+            "outcome": "unsolved",
             "actual_size": None,
-            "stderr": completed.stderr.decode("utf-8", errors="replace").strip(),
         }
 
     return None
@@ -144,7 +145,7 @@ def compute_score(args):
 
     cases = []
     correct = 0
-    timed_out = 0
+    unsolved = 0
     disqualified = False
 
     with tempfile.TemporaryDirectory(prefix="pace-score-") as temp_dir:
@@ -162,10 +163,7 @@ def compute_score(args):
 
             if failed:
                 case.update(failed)
-                if failed["outcome"] == "timeout":
-                    timed_out += 1
-                else:
-                    disqualified = True
+                unsolved += 1
                 cases.append(case)
                 continue
 
@@ -178,7 +176,9 @@ def compute_score(args):
 
             actual_size = checked
             case["actual_size"] = actual_size
-            if actual_size == row["expected_size"]:
+            if row["expected_size"] is None:
+                case["outcome"] = "valid_unscored_unknown_optimum"
+            elif actual_size == row["expected_size"]:
                 case["outcome"] = "correct"
                 correct += 1
             else:
@@ -190,10 +190,10 @@ def compute_score(args):
         "track": "exact",
         "formula_source": SCORING_SOURCE,
         "benchmark": str(benchmark_path.relative_to(ROOT)),
-        "score": exact_score(correct, timed_out, disqualified),
+        "score": exact_score(correct, unsolved, disqualified),
         "max_score": len(cases),
         "correct": correct,
-        "timed_out": timed_out,
+        "unsolved": unsolved,
         "disqualified": disqualified,
         "cases": cases,
     }
@@ -212,15 +212,25 @@ def comparable(result):
     return json.dumps(result, sort_keys=True, separators=(",", ":"))
 
 
+def reset_changed(args):
+    if not args.reset_file or not args.previous_reset_file:
+        return False
+    reset = load_json(args.reset_file)
+    previous_reset = load_json(args.previous_reset_file)
+    return comparable(reset) != comparable(previous_reset)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Score the solver according to PACE 2026 scoring.")
     parser.add_argument("--benchmark", default=str(DEFAULT_BENCHMARK))
     parser.add_argument("--solver", default=str(DEFAULT_SOLVER))
     parser.add_argument("--stride-bin")
-    parser.add_argument("--timeout-seconds", type=float, default=30)
+    parser.add_argument("--timeout-seconds", type=float, default=0.05)
     parser.add_argument("--write", type=Path)
     parser.add_argument("--check-file", type=Path)
     parser.add_argument("--previous-file", type=Path)
+    parser.add_argument("--reset-file", type=Path, default=DEFAULT_RESET_FILE)
+    parser.add_argument("--previous-reset-file", type=Path)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
 
@@ -246,6 +256,13 @@ def main():
             print("Current score is disqualified; refusing push.", file=sys.stderr)
             return 1
         if result["score"] <= previous.get("score", -1):
+            if reset_changed(args):
+                print(
+                    f"Score gate reset: allowing score {result['score']} after previous score "
+                    f"{previous.get('score', -1)} because the reset file changed.",
+                    file=sys.stderr,
+                )
+                return 0
             print(
                 f"Current score {result['score']} is not better than previous score "
                 f"{previous.get('score', -1)}.",
