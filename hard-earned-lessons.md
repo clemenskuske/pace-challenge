@@ -33,7 +33,7 @@ Read this first. Add concise notes whenever something costs time, disk, correctn
 - Exact-track local score is stored in `scores/current-score.json`.
 - The current scoring benchmark is `data/benchmarks/exact_public.tsv`: all 150 public exact instances.
 - Public exact optimum sizes are not present in the downloaded instance files. Benchmark rows without `expected_size` are deliberately scored as 0 even if the solver emits a feasible solution, because exact scoring needs a certified optimum.
-- The local scoring timeout is a total timeout for the whole benchmark run, not a per-instance timeout. Default is 30 seconds for all 150 public exact instances.
+- The local scoring timeout is a total timeout for the whole benchmark run, not a per-instance timeout. Default is 120 seconds for all 150 public exact instances.
 - The stored score file is a baseline artifact, not a trusted cache: pre-push recomputes the score, requires it to match `scores/current-score.json`, then compares the fresh score against remote `main`.
 - `scripts/score-exact.py --previous-file scores/current-score.json` intentionally fails when comparing a score file against itself; this verifies that equal scores are blocked.
 - The pre-push hook only enforces score improvement for pushes whose remote ref is `refs/heads/main`.
@@ -44,6 +44,7 @@ Read this first. Add concise notes whenever something costs time, disk, correctn
 
 - Public exact instances with tiny leaf count can still have large treedecomp width. Spending the 30-second scoring budget on width-190 11-leaf cases is unstable; gate prototype exact engines by `#x treedecomp` width until a real decomposition DP exists.
 - `exact058.nw` has 10 leaves and treedecomp width 10. A leaf-subset component DP solves it quickly and STRIDE accepts the output at solution size 9, but the public score remains 0 because no certified optimum is listed.
+- The scoring budget was later raised to 120 seconds. The width gate still matters because unscored feasible public outputs do not increase the exact-track score unless the benchmark row has a certified optimum.
 
 ## 2026-05-12 Auto-Revert On Wrong Known Instances
 

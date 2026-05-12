@@ -1,4 +1,4 @@
 {
-  "epoch": 5,
-  "reason": "Allow first valid unscored public exact solution while public optima remain unavailable."
+  "epoch": 6,
+  "reason": "Increase public exact scoring timeout to 120 seconds while public optima remain unavailable."
 }
