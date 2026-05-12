@@ -348,4 +348,61 @@ mod tests {
             assert_eq!(forest.len(), expected_size, "{path}");
         }
     }
+
+    #[test]
+    #[ignore = "public exact smoke test; run before pushing"]
+    fn parses_all_public_exact_instances() {
+        let mut paths = std::fs::read_dir("data/instances/exact")
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| {
+                path.file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name.starts_with("exact") && name.ends_with(".nw"))
+            })
+            .collect::<Vec<_>>();
+        paths.sort();
+        assert_eq!(paths.len(), 150);
+
+        for path in paths {
+            let input = std::fs::read_to_string(&path).unwrap();
+            let mut expected_trees = None;
+            let mut expected_leaves = None;
+            let mut parsed_trees = 0;
+            let mut has_treedecomp = false;
+
+            for line in input.lines().map(str::trim).filter(|line| !line.is_empty()) {
+                if let Some(rest) = line.strip_prefix("#p ") {
+                    let mut parts = rest.split_whitespace();
+                    expected_trees = Some(parts.next().unwrap().parse::<usize>().unwrap());
+                    expected_leaves = Some(parts.next().unwrap().parse::<usize>().unwrap());
+                } else if line.starts_with("#x treedecomp ") {
+                    has_treedecomp = true;
+                } else if !line.starts_with('#') {
+                    let tree = parse_newick(line).unwrap_or_else(|err| {
+                        panic!("{}: {err}", path.display());
+                    });
+                    assert_valid_leaf_set(
+                        &tree,
+                        expected_leaves.unwrap(),
+                        path.display().to_string(),
+                    );
+                    parsed_trees += 1;
+                }
+            }
+
+            assert_eq!(Some(parsed_trees), expected_trees, "{}", path.display());
+            assert!(has_treedecomp, "missing treedecomp in {}", path.display());
+        }
+    }
+
+    fn assert_valid_leaf_set(tree: &Tree, expected_leaves: usize, path: String) {
+        let mut labels = tree
+            .nodes
+            .iter()
+            .filter_map(|node| node.label)
+            .collect::<Vec<_>>();
+        labels.sort_unstable();
+        assert_eq!(labels, (1..=expected_leaves).collect::<Vec<_>>(), "{path}");
+    }
 }

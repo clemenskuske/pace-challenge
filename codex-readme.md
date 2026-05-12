@@ -22,8 +22,7 @@ Current milestone: the Rust solver in `src/main.rs` solves all 10 instances from
 Run:
 
 ```sh
-cargo test
-target/debug/pace_challenge_maf < data/instances/tiny/tiny08.nw
+scripts/check-short.sh
 ```
 
 ## PACE 2026 Exact Track
@@ -65,10 +64,26 @@ Important format facts:
 Downloaded official data:
 
 - Tiny test set: `data/raw/tiny02.tar`, extracted to `data/instances/tiny/`.
-- Exact public v2 archive from the 2026 overview, updated 2026-05-08: `data/raw/pace26_exact_pub_v2.tar.gz`, extracted to `data/instances/exact/`.
+- Exact public v2 archive from the 2026 overview, updated 2026-05-08: `data/raw/pace26_exact_pub_v2.tar.gz`, extracted to `data/instances/exact/` with 150 instances.
 - Exact public STRIDE list: `data/raw/pace26_exact_pub_v2.lst`.
 
-The tiny summary PDF gives known outputs used as official tiny fixtures. Solution files for all tiny instances live in `data/solutions/tiny/`.
+The tiny summary PDF gives known outputs used as official tiny fixtures. Solution files for all tiny instances live in `data/solutions/tiny/`. The tiny set is only for short local tests; before pushing to Git, the larger public exact smoke test is mandatory.
+
+## Required Checks
+
+Git hooks are tracked in `.githooks/`, and this clone is configured with `core.hooksPath=.githooks`.
+
+- Before commit: `.githooks/pre-commit` runs `scripts/check-short.sh`.
+- Before push: `.githooks/pre-push` runs `scripts/check-big.sh`.
+
+Use these commands directly when iterating:
+
+```sh
+scripts/check-short.sh
+scripts/check-big.sh
+```
+
+`check-short.sh` runs the normal Rust test suite, including all 10 tiny fixtures. `check-big.sh` also runs the ignored public exact smoke test, which parses all 150 public exact instances and checks their basic structure and `treedecomp` metadata. The current solver is not yet expected to solve the public exact set; this smoke test is the mandatory larger-regression gate until a real exact algorithm exists.
 
 ## Current Solver
 

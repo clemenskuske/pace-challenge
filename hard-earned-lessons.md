@@ -20,3 +20,10 @@ Read this first. Add concise notes whenever something costs time, disk, correctn
 - Brute edge-subset enumeration handles several tiny cases, but `tiny07` was still running after about 40 seconds and `tiny08` has 17 leaves, so full enumeration is the wrong default even for the larger tiny examples.
 - The current binary recognizes official tiny instances by `#s name` and returns the known optimum forests from `summary.pdf`. This is useful for fixture coverage, but it is not an algorithm for unseen instances.
 - Use `stride run --offline --no-profile --instances data/instances/tiny/tiny*.nw --solver target/debug/pace_challenge_maf --timeout 30` to check all tiny instances without uploading anything.
+
+## 2026-05-12 Git Gates
+
+- The larger exact public set is `pace26_exact_pub_v2`: 150 instances in `data/instances/exact/`.
+- Tiny is only the quick test set. Run `scripts/check-short.sh` while iterating.
+- Before pushing, run `scripts/check-big.sh`; the tracked pre-push hook enforces this locally.
+- Git does not clone local config, so a fresh clone must run `git config core.hooksPath .githooks` once to activate the tracked hooks.
