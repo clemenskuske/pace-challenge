@@ -907,6 +907,7 @@
   "formula_source": "https://pacechallenge.org/2026/#scoring",
   "max_score": 150,
   "score": 0,
+  "total_timeout_seconds": 1.0,
   "track": "exact",
   "unsolved": 150
 }

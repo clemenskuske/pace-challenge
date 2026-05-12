@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 
@@ -82,7 +83,10 @@ def load_benchmark(path):
     return rows
 
 
-def run_solver(solver, instance, solution_path, timeout_seconds):
+def run_solver(solver, instance, solution_path, remaining_seconds):
+    if remaining_seconds <= 0:
+        return {"outcome": "unsolved", "actual_size": None}
+
     with instance.open("rb") as stdin, solution_path.open("wb") as stdout:
         try:
             completed = subprocess.run(
@@ -90,9 +94,10 @@ def run_solver(solver, instance, solution_path, timeout_seconds):
                 stdin=stdin,
                 stdout=stdout,
                 stderr=subprocess.PIPE,
-                timeout=timeout_seconds,
+                timeout=remaining_seconds,
                 cwd=ROOT,
                 check=False,
+                start_new_session=True,
             )
         except subprocess.TimeoutExpired:
             return {"outcome": "unsolved", "actual_size": None}
@@ -147,13 +152,16 @@ def compute_score(args):
     correct = 0
     unsolved = 0
     disqualified = False
+    started_at = time.monotonic()
 
     with tempfile.TemporaryDirectory(prefix="pace-score-") as temp_dir:
         temp_dir = Path(temp_dir)
         for row in load_benchmark(benchmark_path):
+            elapsed = time.monotonic() - started_at
+            remaining = args.total_timeout_seconds - elapsed
             instance = ROOT / row["instance"]
             solution_path = temp_dir / (instance.stem + ".sol")
-            failed = run_solver(solver, instance, solution_path, args.timeout_seconds)
+            failed = run_solver(solver, instance, solution_path, remaining)
             case = {
                 "instance": row["instance"],
                 "expected_size": row["expected_size"],
@@ -190,6 +198,7 @@ def compute_score(args):
         "track": "exact",
         "formula_source": SCORING_SOURCE,
         "benchmark": str(benchmark_path.relative_to(ROOT)),
+        "total_timeout_seconds": args.total_timeout_seconds,
         "score": exact_score(correct, unsolved, disqualified),
         "max_score": len(cases),
         "correct": correct,
@@ -225,7 +234,7 @@ def main():
     parser.add_argument("--benchmark", default=str(DEFAULT_BENCHMARK))
     parser.add_argument("--solver", default=str(DEFAULT_SOLVER))
     parser.add_argument("--stride-bin")
-    parser.add_argument("--timeout-seconds", type=float, default=0.05)
+    parser.add_argument("--total-timeout-seconds", type=float, default=1.0)
     parser.add_argument("--write", type=Path)
     parser.add_argument("--check-file", type=Path)
     parser.add_argument("--previous-file", type=Path)

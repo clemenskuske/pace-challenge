@@ -33,7 +33,8 @@ Read this first. Add concise notes whenever something costs time, disk, correctn
 - Exact-track local score is stored in `scores/current-score.json`.
 - The current scoring benchmark is `data/benchmarks/exact_public.tsv`: all 150 public exact instances.
 - Public exact optimum sizes are not present in the downloaded instance files. Benchmark rows without `expected_size` are deliberately scored as 0 even if the solver emits a feasible solution, because exact scoring needs a certified optimum.
-- The per-instance local scoring timeout is 0.05s, intentionally tiny, so getting nonzero score should require either tiny certified cases added to the public benchmark or real fast exact progress.
+- The local scoring timeout is a total timeout for the whole benchmark run, not a per-instance timeout. Default is 1 second for all 150 public exact instances, intentionally tiny.
+- The stored score file is a baseline artifact, not a trusted cache: pre-push recomputes the score, requires it to match `scores/current-score.json`, then compares the fresh score against remote `main`.
 - `scripts/score-exact.py --previous-file scores/current-score.json` intentionally fails when comparing a score file against itself; this verifies that equal scores are blocked.
 - The pre-push hook only enforces score improvement for pushes whose remote ref is `refs/heads/main`.
 - A score reset is allowed by changing `scores/reset.json`; this exists so a too-good score caused by a bug does not permanently block `main`.

@@ -1,4 +1,4 @@
 {
-  "epoch": 0,
-  "reason": "Initial score gate baseline."
+  "epoch": 1,
+  "reason": "Switch scoring from per-instance timeout to a total benchmark timeout."
 }
