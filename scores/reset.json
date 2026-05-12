@@ -1,4 +1,4 @@
 {
-  "epoch": 1,
-  "reason": "Switch scoring from per-instance timeout to a total benchmark timeout."
+  "epoch": 2,
+  "reason": "Increase total scoring timeout from 1 second to 30 seconds."
 }

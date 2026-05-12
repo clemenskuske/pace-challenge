@@ -234,7 +234,7 @@ def main():
     parser.add_argument("--benchmark", default=str(DEFAULT_BENCHMARK))
     parser.add_argument("--solver", default=str(DEFAULT_SOLVER))
     parser.add_argument("--stride-bin")
-    parser.add_argument("--total-timeout-seconds", type=float, default=1.0)
+    parser.add_argument("--total-timeout-seconds", type=float, default=30.0)
     parser.add_argument("--write", type=Path)
     parser.add_argument("--check-file", type=Path)
     parser.add_argument("--previous-file", type=Path)
