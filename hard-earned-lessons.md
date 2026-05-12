@@ -37,4 +37,5 @@ Read this first. Add concise notes whenever something costs time, disk, correctn
 - The stored score file is a baseline artifact, not a trusted cache: pre-push recomputes the score, requires it to match `scores/current-score.json`, then compares the fresh score against remote `main`.
 - `scripts/score-exact.py --previous-file scores/current-score.json` intentionally fails when comparing a score file against itself; this verifies that equal scores are blocked.
 - The pre-push hook only enforces score improvement for pushes whose remote ref is `refs/heads/main`.
+- Use branches for broad solver rewrites that need a fresh or temporarily low score; the improvement gate is a `main` gate, not a branch experimentation gate.
 - A score reset is allowed by changing `scores/reset.json`; this exists so a too-good score caused by a bug does not permanently block `main`.

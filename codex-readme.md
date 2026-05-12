@@ -90,6 +90,8 @@ The exact-track scoring gate is implemented by `scripts/score-exact.py`, using t
 
 The score file is not trusted as "the last run" during a push. The pre-push hook recomputes the score from the current working tree, requires it to match the committed `scores/current-score.json`, and then compares that fresh score against the score stored on remote `main`. Pushes to `main` are allowed only when the freshly computed score is higher than the remote score, unless `scores/reset.json` changed to intentionally reset the gate.
 
+For broad solver rewrites that may be unusable for a while, work on a branch. The pre-push hook only enforces score improvement for pushes to `main`, so branches can carry a fresh or temporarily low score while the idea is still taking shape. Before merging or pushing back to `main`, regenerate `scores/current-score.json` and either improve the score or use an explicit `scores/reset.json` reset with a clear reason.
+
 To reset a too-good or buggy score, update `scores/reset.json` with a new `epoch` and reason, regenerate `scores/current-score.json`, and push that reset commit. Use this sparingly and write the reason clearly.
 
 ## Current Solver
