@@ -3,7 +3,7 @@ set -u
 
 cd "$(git rev-parse --show-toplevel)"
 
-if scripts/check-short.sh
+if scripts/check-big.sh
 then
   exit 0
 fi
@@ -11,11 +11,12 @@ fi
 cat >&2 <<'EOF'
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-KNOWN INSTANCE CHECK FAILED.
+KNOWN OR PUBLIC INSTANCE CHECK FAILED.
 
-At least one guarded instance is now computed incorrectly, or the checked solver
-state is otherwise unusable. Per repository policy, this hook is reverting all
-staged and unstaged changes back to HEAD before aborting the commit.
+At least one guarded known instance or one of the 150 public exact smoke-test
+instances is now wrong, unparsable, or otherwise unusable. Per repository
+policy, this hook is reverting all staged and unstaged changes back to HEAD
+before aborting the commit.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 EOF

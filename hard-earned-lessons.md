@@ -42,6 +42,7 @@ Read this first. Add concise notes whenever something costs time, disk, correctn
 
 ## 2026-05-12 Auto-Revert On Wrong Known Instances
 
-- The pre-commit hook now runs `scripts/pre-commit.sh`, not `scripts/check-short.sh` directly.
-- If short known-instance checks fail, the hook intentionally runs `git reset --hard HEAD` and `git clean -fd`.
-- This is destructive by design: wrong known-instance output should revert immediately, not linger as a blocked commit.
+- The pre-commit hook runs `scripts/pre-commit.sh`, not `scripts/check-short.sh` directly.
+- `scripts/pre-commit.sh` runs `scripts/check-big.sh`, so it covers tiny fixtures and all 150 public exact smoke-test instances.
+- If those checks fail, the hook intentionally runs `git reset --hard HEAD` and `git clean -fd`.
+- This is destructive by design: wrong guarded output should revert immediately, not linger as a blocked commit.

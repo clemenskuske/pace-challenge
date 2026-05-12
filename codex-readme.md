@@ -73,12 +73,12 @@ The tiny summary PDF gives known outputs used as official tiny fixtures. Solutio
 
 Git hooks are tracked in `.githooks/`, and this clone is configured with `core.hooksPath=.githooks`.
 
-- Before commit: `.githooks/pre-commit` runs `scripts/check-short.sh`.
+- Before commit: `.githooks/pre-commit` runs `scripts/pre-commit.sh`, which runs the full `scripts/check-big.sh` gate over the tiny fixtures and all 150 public exact smoke-test instances.
 - Before push: `.githooks/pre-push` runs `scripts/pre-push.sh`.
 
 ## HIGH IMPORTANCE: Wrong Known Instances Revert The Worktree
 
-If one or more guarded instances are computed wrong, the changes must not survive as a blocked commit. The pre-commit hook runs `scripts/pre-commit.sh`; when the short known-instance checks fail, it aborts the commit and runs `git reset --hard HEAD` plus `git clean -fd`. This intentionally discards staged, unstaged, and untracked non-ignored changes so the repository returns to the last known-good commit.
+If one or more guarded instances are computed wrong, the changes must not survive as a blocked commit. The pre-commit hook runs `scripts/pre-commit.sh`; when the tiny fixture checks or the 150 public exact smoke-test checks fail, it aborts the commit and runs `git reset --hard HEAD` plus `git clean -fd`. This intentionally discards staged, unstaged, and untracked non-ignored changes so the repository returns to the last known-good commit.
 
 Do not bypass this hook for solver changes. If a broad rewrite needs time in a broken state, create a branch first and commit only once the guarded instances are correct again.
 

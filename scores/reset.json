@@ -1,4 +1,4 @@
 {
-  "epoch": 3,
-  "reason": "Push pre-commit auto-revert policy for wrong known-instance outputs."
+  "epoch": 4,
+  "reason": "Extend pre-commit auto-revert policy to all 150 public exact smoke-test instances."
 }
