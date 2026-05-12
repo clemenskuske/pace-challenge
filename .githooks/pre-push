@@ -1,5 +1,4 @@
 #!/usr/bin/env sh
 set -eu
 
-exec scripts/check-big.sh
-
+exec scripts/pre-push.sh

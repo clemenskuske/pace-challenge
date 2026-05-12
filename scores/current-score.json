@@ -1,0 +1,72 @@
+{
+  "benchmark": "data/benchmarks/exact_tiny.tsv",
+  "cases": [
+    {
+      "actual_size": 4,
+      "expected_size": 4,
+      "instance": "data/instances/tiny/tiny01.nw",
+      "outcome": "correct"
+    },
+    {
+      "actual_size": 1,
+      "expected_size": 1,
+      "instance": "data/instances/tiny/tiny02.nw",
+      "outcome": "correct"
+    },
+    {
+      "actual_size": 7,
+      "expected_size": 7,
+      "instance": "data/instances/tiny/tiny03.nw",
+      "outcome": "correct"
+    },
+    {
+      "actual_size": 5,
+      "expected_size": 5,
+      "instance": "data/instances/tiny/tiny04.nw",
+      "outcome": "correct"
+    },
+    {
+      "actual_size": 3,
+      "expected_size": 3,
+      "instance": "data/instances/tiny/tiny05.nw",
+      "outcome": "correct"
+    },
+    {
+      "actual_size": 3,
+      "expected_size": 3,
+      "instance": "data/instances/tiny/tiny06.nw",
+      "outcome": "correct"
+    },
+    {
+      "actual_size": 8,
+      "expected_size": 8,
+      "instance": "data/instances/tiny/tiny07.nw",
+      "outcome": "correct"
+    },
+    {
+      "actual_size": 12,
+      "expected_size": 12,
+      "instance": "data/instances/tiny/tiny08.nw",
+      "outcome": "correct"
+    },
+    {
+      "actual_size": 5,
+      "expected_size": 5,
+      "instance": "data/instances/tiny/tiny09.nw",
+      "outcome": "correct"
+    },
+    {
+      "actual_size": 6,
+      "expected_size": 6,
+      "instance": "data/instances/tiny/tiny10.nw",
+      "outcome": "correct"
+    }
+  ],
+  "correct": 10,
+  "disqualified": false,
+  "formula_source": "https://pacechallenge.org/2026/#scoring",
+  "max_score": 10,
+  "score": 10,
+  "timed_out": 0,
+  "track": "exact"
+}

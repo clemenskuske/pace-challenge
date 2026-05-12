@@ -27,3 +27,10 @@ Read this first. Add concise notes whenever something costs time, disk, correctn
 - Tiny is only the quick test set. Run `scripts/check-short.sh` while iterating.
 - Before pushing, run `scripts/check-big.sh`; the tracked pre-push hook enforces this locally.
 - Git does not clone local config, so a fresh clone must run `git config core.hooksPath .githooks` once to activate the tracked hooks.
+
+## 2026-05-12 Scoring Gate
+
+- Exact-track local score is stored in `scores/current-score.json`.
+- The current scoring benchmark is `data/benchmarks/exact_tiny.tsv`; it is maxed out at 10, so future pushes to `main` will need either a stronger benchmark with known optima or a solver improvement that increases the configured score.
+- `scripts/score-exact.py --previous-file scores/current-score.json` intentionally fails at score 10 vs 10; this verifies that equal scores are blocked.
+- The pre-push hook only enforces score improvement for pushes whose remote ref is `refs/heads/main`.

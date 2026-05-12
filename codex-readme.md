@@ -74,16 +74,19 @@ The tiny summary PDF gives known outputs used as official tiny fixtures. Solutio
 Git hooks are tracked in `.githooks/`, and this clone is configured with `core.hooksPath=.githooks`.
 
 - Before commit: `.githooks/pre-commit` runs `scripts/check-short.sh`.
-- Before push: `.githooks/pre-push` runs `scripts/check-big.sh`.
+- Before push: `.githooks/pre-push` runs `scripts/pre-push.sh`.
 
 Use these commands directly when iterating:
 
 ```sh
 scripts/check-short.sh
 scripts/check-big.sh
+scripts/score-exact.py --check-file scores/current-score.json
 ```
 
 `check-short.sh` runs the normal Rust test suite, including all 10 tiny fixtures. `check-big.sh` also runs the ignored public exact smoke test, which parses all 150 public exact instances and checks their basic structure and `treedecomp` metadata. The current solver is not yet expected to solve the public exact set; this smoke test is the mandatory larger-regression gate until a real exact algorithm exists.
+
+The exact-track scoring gate is implemented by `scripts/score-exact.py`, using the official exact-track rule: every correctly solved instance is worth 1 point, timeouts are worth 0, and any infeasible or non-optimal answer disqualifies the score. The current stored score is `scores/current-score.json` on `data/benchmarks/exact_tiny.tsv`, with score 10 out of 10. Pushes to `main` are allowed only when the freshly computed score is higher than the score stored on the remote `main` commit and the committed `scores/current-score.json` matches the freshly computed result.
 
 ## Current Solver
 
