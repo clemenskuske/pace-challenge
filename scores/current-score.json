@@ -350,10 +350,10 @@
       "outcome": "unsolved"
     },
     {
-      "actual_size": null,
+      "actual_size": 9,
       "expected_size": null,
       "instance": "data/instances/exact/exact058.nw",
-      "outcome": "unsolved"
+      "outcome": "valid_unscored_unknown_optimum"
     },
     {
       "actual_size": null,
@@ -909,5 +909,5 @@
   "score": 0,
   "total_timeout_seconds": 30.0,
   "track": "exact",
-  "unsolved": 150
+  "unsolved": 149
 }

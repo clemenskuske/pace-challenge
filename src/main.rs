@@ -23,6 +23,17 @@ struct Component {
 
 type Forest = Vec<Component>;
 
+const MAX_CANDIDATE_TREE_EDGES: usize = 24;
+const MAX_SUBSET_DP_LEAVES: usize = 16;
+const MAX_EXACT_TREEDECOMP_WIDTH: usize = 32;
+
+#[derive(Clone, Debug)]
+struct AgreementComponentCandidate {
+    leaf_mask: usize,
+    component: Component,
+    retained_edges_by_tree: Vec<u128>,
+}
+
 fn main() {
     let mut input = String::new();
     io::stdin()
@@ -46,6 +57,7 @@ fn solve(input: &str) -> Result<Forest, String> {
     let mut trees = Vec::new();
     let mut leaf_count = None;
     let mut instance_name = None;
+    let mut treedecomp_width = None;
 
     for line in input.lines().map(str::trim).filter(|line| !line.is_empty()) {
         if let Some(rest) = line.strip_prefix("#p ") {
@@ -61,6 +73,8 @@ fn solve(input: &str) -> Result<Forest, String> {
             leaf_count = Some(n);
         } else if let Some(name) = parse_metadata_name(line) {
             instance_name = Some(name.to_string());
+        } else if let Some(width) = parse_treedecomp_width(line)? {
+            treedecomp_width = Some(width);
         } else if line.starts_with('#') {
             continue;
         } else {
@@ -79,27 +93,35 @@ fn solve(input: &str) -> Result<Forest, String> {
         }
     }
 
-    if n > 20 {
+    if treedecomp_width.is_none_or(|width| width <= MAX_EXACT_TREEDECOMP_WIDTH) {
+        if let Some(forest) = solve_by_leaf_subset_dp(&trees, n)? {
+            return Ok(forest);
+        }
+    } else {
         return Err(format!(
-            "baseline exhaustive solver is intentionally capped at 20 leaves; instance has {n}"
+            "treedecomp width {} is above the current exact-DP cap {MAX_EXACT_TREEDECOMP_WIDTH}",
+            treedecomp_width.expect("checked by branch")
         ));
     }
 
-    let possible: Vec<HashSet<Forest>> = trees.iter().map(all_forests).collect();
-    let first_tree = possible
-        .first()
-        .ok_or_else(|| "internal error: no generated forests".to_string())?;
-
-    first_tree
-        .iter()
-        .filter(|forest| possible.iter().skip(1).all(|set| set.contains(*forest)))
-        .min_by(|left, right| left.len().cmp(&right.len()).then_with(|| left.cmp(right)))
-        .cloned()
-        .ok_or_else(|| "no agreement forest found".to_string())
+    solve_by_first_tree_candidates(&trees, n, treedecomp_width)
 }
 
 fn parse_metadata_name(line: &str) -> Option<&str> {
     line.strip_prefix("#s name \"")?.strip_suffix('"')
+}
+
+fn parse_treedecomp_width(line: &str) -> Result<Option<usize>, String> {
+    let Some(rest) = line.strip_prefix("#x treedecomp [") else {
+        return Ok(None);
+    };
+    let width = rest
+        .split_once(',')
+        .ok_or_else(|| "invalid treedecomp metadata: missing width separator".to_string())?
+        .0
+        .parse::<usize>()
+        .map_err(|err| format!("invalid treedecomp width: {err}"))?;
+    Ok(Some(width))
 }
 
 fn known_tiny_solution(name: &str) -> Result<Option<Forest>, String> {
@@ -247,20 +269,6 @@ fn collect_edges(
     }
 }
 
-fn all_forests(tree: &Tree) -> HashSet<Forest> {
-    let mut forests = HashSet::new();
-    let edge_count = tree.edges.len();
-    let masks = 1usize
-        .checked_shl(edge_count as u32)
-        .expect("too many edges for exhaustive enumeration");
-
-    for mask in 0..masks {
-        forests.insert(forest_for_mask(tree, mask));
-    }
-
-    forests
-}
-
 fn forest_for_mask(tree: &Tree, mask: usize) -> Forest {
     let mut roots = vec![tree.root];
     for (edge_index, &(_, child)) in tree.edges.iter().enumerate() {
@@ -318,6 +326,330 @@ fn is_cut(mask: usize, edge_index: usize) -> bool {
     (mask & (1usize << edge_index)) != 0
 }
 
+fn solve_by_leaf_subset_dp(trees: &[Tree], leaf_count: usize) -> Result<Option<Forest>, String> {
+    if leaf_count > MAX_SUBSET_DP_LEAVES {
+        return Ok(None);
+    }
+    if trees.iter().any(|tree| tree.edges.len() > 127) {
+        return Ok(None);
+    }
+
+    let full_mask = (1usize << leaf_count) - 1;
+    let mut candidates_by_first_leaf = vec![Vec::new(); leaf_count];
+    for leaf_mask in 1..=full_mask {
+        if let Some(candidate) = agreement_component_candidate(trees, leaf_count, leaf_mask)? {
+            let first_leaf = leaf_mask.trailing_zeros() as usize;
+            candidates_by_first_leaf[first_leaf].push(candidate);
+        }
+    }
+    for candidates in &mut candidates_by_first_leaf {
+        candidates.sort_by(|left, right| {
+            right
+                .leaf_mask
+                .count_ones()
+                .cmp(&left.leaf_mask.count_ones())
+                .then_with(|| left.component.cmp(&right.component))
+        });
+    }
+
+    let mut used_edges_by_tree = vec![0u128; trees.len()];
+    let mut partial = Vec::new();
+    let mut best = Some(singleton_forest(leaf_count));
+    search_agreement_components(
+        &candidates_by_first_leaf,
+        full_mask,
+        0,
+        &mut used_edges_by_tree,
+        &mut partial,
+        &mut best,
+    );
+    Ok(best)
+}
+
+fn singleton_forest(leaf_count: usize) -> Forest {
+    (1..=leaf_count)
+        .map(|label| Component {
+            leaves: vec![label],
+            newick: label.to_string(),
+        })
+        .collect()
+}
+
+fn agreement_component_candidate(
+    trees: &[Tree],
+    leaf_count: usize,
+    leaf_mask: usize,
+) -> Result<Option<AgreementComponentCandidate>, String> {
+    let leaves = leaves_for_mask(leaf_mask, leaf_count);
+    let mut component = None;
+    let mut retained_edges_by_tree = Vec::new();
+    for tree in trees {
+        let Some((projected, retained_edges)) = project_component(tree, &leaves) else {
+            return Ok(None);
+        };
+        if let Some(expected) = component.as_ref() {
+            if expected != &projected {
+                return Ok(None);
+            }
+        } else {
+            component = Some(projected);
+        }
+        retained_edges_by_tree.push(edge_mask(&retained_edges)?);
+    }
+
+    Ok(Some(AgreementComponentCandidate {
+        leaf_mask,
+        component: component.expect("nonempty leaf mask has a projection"),
+        retained_edges_by_tree,
+    }))
+}
+
+fn leaves_for_mask(leaf_mask: usize, leaf_count: usize) -> Vec<usize> {
+    (0..leaf_count)
+        .filter(|leaf| (leaf_mask & (1usize << leaf)) != 0)
+        .map(|leaf| leaf + 1)
+        .collect()
+}
+
+fn edge_mask(edges: &[usize]) -> Result<u128, String> {
+    let mut mask = 0u128;
+    for &edge in edges {
+        if edge >= 128 {
+            return Err("component edge mask requires more than 128 bits".to_string());
+        }
+        mask |= 1u128 << edge;
+    }
+    Ok(mask)
+}
+
+fn search_agreement_components(
+    candidates_by_first_leaf: &[Vec<AgreementComponentCandidate>],
+    full_mask: usize,
+    covered_mask: usize,
+    used_edges_by_tree: &mut [u128],
+    partial: &mut Forest,
+    best: &mut Option<Forest>,
+) {
+    let minimum_possible_size = partial.len() + usize::from(covered_mask != full_mask);
+    if best
+        .as_ref()
+        .is_some_and(|current| minimum_possible_size >= current.len())
+    {
+        return;
+    }
+
+    if covered_mask == full_mask {
+        let mut forest = partial.clone();
+        forest.sort();
+        if best
+            .as_ref()
+            .is_none_or(|current| forest.len() < current.len())
+        {
+            *best = Some(forest);
+        }
+        return;
+    }
+
+    let next_leaf = ((!covered_mask) & full_mask).trailing_zeros() as usize;
+    for candidate in &candidates_by_first_leaf[next_leaf] {
+        if (candidate.leaf_mask & covered_mask) != 0 {
+            continue;
+        }
+        if candidate
+            .retained_edges_by_tree
+            .iter()
+            .zip(used_edges_by_tree.iter())
+            .any(|(candidate_edges, used_edges)| (candidate_edges & used_edges) != 0)
+        {
+            continue;
+        }
+
+        for (used_edges, candidate_edges) in used_edges_by_tree
+            .iter_mut()
+            .zip(candidate.retained_edges_by_tree.iter())
+        {
+            *used_edges |= candidate_edges;
+        }
+        partial.push(candidate.component.clone());
+        search_agreement_components(
+            candidates_by_first_leaf,
+            full_mask,
+            covered_mask | candidate.leaf_mask,
+            used_edges_by_tree,
+            partial,
+            best,
+        );
+        partial.pop();
+        for (used_edges, candidate_edges) in used_edges_by_tree
+            .iter_mut()
+            .zip(candidate.retained_edges_by_tree.iter())
+        {
+            *used_edges &= !candidate_edges;
+        }
+    }
+}
+
+fn solve_by_first_tree_candidates(
+    trees: &[Tree],
+    leaf_count: usize,
+    treedecomp_width: Option<usize>,
+) -> Result<Forest, String> {
+    let first_tree = trees
+        .first()
+        .ok_or_else(|| "internal error: no parsed trees".to_string())?;
+    let edge_count = first_tree.edges.len();
+    if edge_count > MAX_CANDIDATE_TREE_EDGES {
+        let treedecomp_note = treedecomp_width
+            .map(|width| {
+                format!(
+                    "; parsed treedecomp width {width}, but the decomposition DP is not implemented yet"
+                )
+            })
+            .unwrap_or_default();
+        return Err(format!(
+            "candidate exact solver is capped at {MAX_CANDIDATE_TREE_EDGES} first-tree edges; \
+             instance has {edge_count} edges on {leaf_count} leaves{treedecomp_note}"
+        ));
+    }
+
+    let mut seen = HashSet::new();
+    let mut best: Option<Forest> = None;
+    let masks = 1usize
+        .checked_shl(edge_count as u32)
+        .expect("candidate edge cap must fit in usize");
+
+    for mask in 0..masks {
+        let forest = forest_for_mask(first_tree, mask);
+        if !seen.insert(forest.clone()) {
+            continue;
+        }
+        if best
+            .as_ref()
+            .is_some_and(|current| forest.len() > current.len())
+        {
+            continue;
+        }
+        let displayed_by_all = trees
+            .iter()
+            .skip(1)
+            .all(|tree| forest_displayed_by_tree(tree, &forest));
+        if displayed_by_all
+            && best
+                .as_ref()
+                .is_none_or(|current| forest.len() < current.len() || &forest < current)
+        {
+            best = Some(forest);
+        }
+    }
+
+    best.ok_or_else(|| "no agreement forest found".to_string())
+}
+
+fn forest_displayed_by_tree(tree: &Tree, forest: &Forest) -> bool {
+    let mut used_edges = vec![false; tree.edges.len()];
+    for component in forest {
+        let Some((projected, retained_edges)) = project_component(tree, &component.leaves) else {
+            return false;
+        };
+        if projected != *component {
+            return false;
+        }
+        for edge in retained_edges {
+            if used_edges[edge] {
+                return false;
+            }
+            used_edges[edge] = true;
+        }
+    }
+    true
+}
+
+fn project_component(tree: &Tree, leaves: &[usize]) -> Option<(Component, Vec<usize>)> {
+    if leaves.is_empty() {
+        return None;
+    }
+
+    let mut selected_counts = vec![0usize; tree.nodes.len()];
+    fill_selected_counts(tree, tree.root, leaves, &mut selected_counts);
+    if selected_counts[tree.root] != leaves.len() {
+        return None;
+    }
+
+    let mut lca = tree.root;
+    loop {
+        let Some(&child) = tree.nodes[lca]
+            .children
+            .iter()
+            .find(|&&child| selected_counts[child] == leaves.len())
+        else {
+            break;
+        };
+        lca = child;
+    }
+
+    let mut retained_edges = Vec::new();
+    let component = project_from_lca(tree, lca, &selected_counts, &mut retained_edges)?;
+    Some((component, retained_edges))
+}
+
+fn fill_selected_counts(tree: &Tree, node: usize, leaves: &[usize], counts: &mut [usize]) -> usize {
+    let count = if let Some(label) = tree.nodes[node].label {
+        usize::from(leaves.binary_search(&label).is_ok())
+    } else {
+        tree.nodes[node]
+            .children
+            .iter()
+            .map(|&child| fill_selected_counts(tree, child, leaves, counts))
+            .sum()
+    };
+    counts[node] = count;
+    count
+}
+
+fn project_from_lca(
+    tree: &Tree,
+    node: usize,
+    selected_counts: &[usize],
+    retained_edges: &mut Vec<usize>,
+) -> Option<Component> {
+    if selected_counts[node] == 0 {
+        return None;
+    }
+    if let Some(label) = tree.nodes[node].label {
+        return Some(Component {
+            leaves: vec![label],
+            newick: label.to_string(),
+        });
+    }
+
+    let mut children = Vec::new();
+    for &child in &tree.nodes[node].children {
+        if selected_counts[child] > 0 {
+            retained_edges.push(tree.edge_of_child[child].expect("non-root child has an edge"));
+            if let Some(component) = project_from_lca(tree, child, selected_counts, retained_edges)
+            {
+                children.push(component);
+            }
+        }
+    }
+
+    match children.len() {
+        0 => None,
+        1 => children.pop(),
+        2 => {
+            children.sort();
+            let mut leaves = children[0].leaves.clone();
+            leaves.extend(&children[1].leaves);
+            leaves.sort_unstable();
+            Some(Component {
+                leaves,
+                newick: format!("({},{})", children[0].newick, children[1].newick),
+            })
+        }
+        _ => unreachable!("PACE trees are binary"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -347,6 +679,34 @@ mod tests {
             let forest = solve(&input).unwrap();
             assert_eq!(forest.len(), expected_size, "{path}");
         }
+    }
+
+    #[test]
+    fn parses_treedecomp_width() {
+        let input = std::fs::read_to_string("data/instances/tiny/tiny01.nw").unwrap();
+        let width = input
+            .lines()
+            .find_map(|line| parse_treedecomp_width(line).transpose())
+            .unwrap()
+            .unwrap();
+        assert_eq!(width, 3);
+    }
+
+    #[test]
+    fn display_check_rejects_crossing_components() {
+        let tree = parse_newick("(((1,2),3),4);").unwrap();
+        let forest = vec![
+            parse_single_component("(1,3);"),
+            parse_single_component("(2,4);"),
+        ];
+        assert!(!forest_displayed_by_tree(&tree, &forest));
+    }
+
+    fn parse_single_component(line: &str) -> Component {
+        let tree = parse_newick(line).unwrap();
+        let mut forest = forest_for_mask(&tree, 0);
+        assert_eq!(forest.len(), 1);
+        forest.remove(0)
     }
 
     #[test]

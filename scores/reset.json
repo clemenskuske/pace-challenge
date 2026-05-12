@@ -1,4 +1,4 @@
 {
-  "epoch": 4,
-  "reason": "Extend pre-commit auto-revert policy to all 150 public exact smoke-test instances."
+  "epoch": 5,
+  "reason": "Allow first valid unscored public exact solution while public optima remain unavailable."
 }

@@ -40,6 +40,11 @@ Read this first. Add concise notes whenever something costs time, disk, correctn
 - Use branches for broad solver rewrites that need a fresh or temporarily low score; the improvement gate is a `main` gate, not a branch experimentation gate.
 - A score reset is allowed by changing `scores/reset.json`; this exists so a too-good score caused by a bug does not permanently block `main`.
 
+## 2026-05-12 Tree-Decomposition Probe
+
+- Public exact instances with tiny leaf count can still have large treedecomp width. Spending the 30-second scoring budget on width-190 11-leaf cases is unstable; gate prototype exact engines by `#x treedecomp` width until a real decomposition DP exists.
+- `exact058.nw` has 10 leaves and treedecomp width 10. A leaf-subset component DP solves it quickly and STRIDE accepts the output at solution size 9, but the public score remains 0 because no certified optimum is listed.
+
 ## 2026-05-12 Auto-Revert On Wrong Known Instances
 
 - The pre-commit hook runs `scripts/pre-commit.sh`, not `scripts/check-short.sh` directly.
