@@ -17,6 +17,11 @@ DEFAULT_SOLVER = ROOT / "target" / "debug" / "pace_challenge_maf"
 DEFAULT_SCORE_FILE = ROOT / "scores" / "current-score.json"
 DEFAULT_RESET_FILE = ROOT / "scores" / "reset.json"
 SCORING_SOURCE = "https://pacechallenge.org/2026/#scoring"
+GROUND_TRUTH_REVIEW_MESSAGE = (
+    "STRIDE accepted a solution smaller than the local ground truth; "
+    "analyze whether the stored expected_size is too high or whether "
+    "the solver/checker/model has a bug."
+)
 
 
 def exact_score(correct, unsolved, disqualified):
@@ -44,6 +49,46 @@ def self_test():
     assert lower_bound_score(611) == 0.0
     assert heuristic_score(n=10, k_star=3, k=3) == 1.0
     assert heuristic_score(n=10, k_star=3, k=6) == 0.0
+    review_tasks = []
+    case = {"instance": "demo.nw", "expected_size": 5, "actual_size": 4}
+    correct_delta, disqualified = classify_checked_solution(
+        case, expected_size=5, actual_size=4, ground_truth_review_tasks=review_tasks
+    )
+    assert correct_delta == 1
+    assert disqualified is False
+    assert case["outcome"] == "better_than_ground_truth"
+    assert review_tasks == [
+        {
+            "instance": "demo.nw",
+            "expected_size": 5,
+            "actual_size": 4,
+            "task": GROUND_TRUTH_REVIEW_MESSAGE,
+        }
+    ]
+
+
+def classify_checked_solution(case, expected_size, actual_size, ground_truth_review_tasks):
+    if expected_size is None:
+        case["outcome"] = "valid_unscored_unknown_optimum"
+        return 0, False
+    if actual_size == expected_size:
+        case["outcome"] = "correct"
+        return 1, False
+    if actual_size < expected_size:
+        case["outcome"] = "better_than_ground_truth"
+        case["ground_truth_review_task"] = GROUND_TRUTH_REVIEW_MESSAGE
+        ground_truth_review_tasks.append(
+            {
+                "instance": case["instance"],
+                "expected_size": expected_size,
+                "actual_size": actual_size,
+                "task": GROUND_TRUTH_REVIEW_MESSAGE,
+            }
+        )
+        return 1, False
+
+    case["outcome"] = "suboptimal_or_unexpected_size"
+    return 0, True
 
 
 def find_stride(explicit):
@@ -152,6 +197,7 @@ def compute_score(args):
     correct = 0
     unsolved = 0
     disqualified = False
+    ground_truth_review_tasks = []
     started_at = time.monotonic()
 
     with tempfile.TemporaryDirectory(prefix="pace-score-") as temp_dir:
@@ -184,14 +230,14 @@ def compute_score(args):
 
             actual_size = checked
             case["actual_size"] = actual_size
-            if row["expected_size"] is None:
-                case["outcome"] = "valid_unscored_unknown_optimum"
-            elif actual_size == row["expected_size"]:
-                case["outcome"] = "correct"
-                correct += 1
-            else:
-                case["outcome"] = "suboptimal_or_unexpected_size"
-                disqualified = True
+            correct_delta, case_disqualified = classify_checked_solution(
+                case,
+                expected_size=row["expected_size"],
+                actual_size=actual_size,
+                ground_truth_review_tasks=ground_truth_review_tasks,
+            )
+            correct += correct_delta
+            disqualified = disqualified or case_disqualified
             cases.append(case)
 
     return {
@@ -204,6 +250,7 @@ def compute_score(args):
         "correct": correct,
         "unsolved": unsolved,
         "disqualified": disqualified,
+        "ground_truth_review_tasks": ground_truth_review_tasks,
         "cases": cases,
     }
 

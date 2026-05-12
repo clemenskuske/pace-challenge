@@ -351,9 +351,9 @@
     },
     {
       "actual_size": 9,
-      "expected_size": null,
+      "expected_size": 9,
       "instance": "data/instances/exact/exact058.nw",
-      "outcome": "valid_unscored_unknown_optimum"
+      "outcome": "correct"
     },
     {
       "actual_size": null,
@@ -902,11 +902,12 @@
       "outcome": "unsolved"
     }
   ],
-  "correct": 0,
+  "correct": 1,
   "disqualified": false,
   "formula_source": "https://pacechallenge.org/2026/#scoring",
+  "ground_truth_review_tasks": [],
   "max_score": 150,
-  "score": 0,
+  "score": 1,
   "total_timeout_seconds": 120.0,
   "track": "exact",
   "unsolved": 149
