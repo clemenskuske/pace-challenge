@@ -46,6 +46,7 @@ Read this first. Add concise notes whenever something costs time, disk, correctn
 - `exact058.nw` has 10 leaves and treedecomp width 10. A leaf-subset component DP solves it quickly and STRIDE accepts the output at solution size 9, but the public score remains 0 because no certified optimum is listed.
 - The scoring budget was later raised to 120 seconds. The width gate still matters because unscored feasible public outputs do not increase the exact-track score unless the benchmark row has a certified optimum.
 - Use exact solver output to grow local ground truth cautiously. Once `expected_size` is filled, the scorer accepts equal valid solutions as correct, rejects larger valid solutions as non-optimal, and accepts smaller valid solutions as `better_than_ground_truth` while adding a review task to explain why the supposed ground truth was too high.
+- Running the leaf-subset exact DP for every small-leaf public instance, regardless of treedecomp width, certifies 8 public exact instances within the 120-second scoring budget: exact007=10, exact049=14, exact053=10, exact058=9, exact059=14, exact067=13, exact083=10, exact094=14.
 
 ## 2026-05-12 Auto-Revert On Wrong Known Instances
 

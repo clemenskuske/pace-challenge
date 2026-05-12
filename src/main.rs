@@ -93,11 +93,11 @@ fn solve(input: &str) -> Result<Forest, String> {
         }
     }
 
-    if treedecomp_width.is_none_or(|width| width <= MAX_EXACT_TREEDECOMP_WIDTH) {
-        if let Some(forest) = solve_by_leaf_subset_dp(&trees, n)? {
-            return Ok(forest);
-        }
-    } else {
+    if let Some(forest) = solve_by_leaf_subset_dp(&trees, n)? {
+        return Ok(forest);
+    }
+
+    if treedecomp_width.is_some_and(|width| width > MAX_EXACT_TREEDECOMP_WIDTH) {
         return Err(format!(
             "treedecomp width {} is above the current exact-DP cap {MAX_EXACT_TREEDECOMP_WIDTH}",
             treedecomp_width.expect("checked by branch")

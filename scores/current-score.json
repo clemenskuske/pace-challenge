@@ -44,10 +44,10 @@
       "outcome": "unsolved"
     },
     {
-      "actual_size": null,
-      "expected_size": null,
+      "actual_size": 10,
+      "expected_size": 10,
       "instance": "data/instances/exact/exact007.nw",
-      "outcome": "unsolved"
+      "outcome": "correct"
     },
     {
       "actual_size": null,
@@ -296,10 +296,10 @@
       "outcome": "unsolved"
     },
     {
-      "actual_size": null,
-      "expected_size": null,
+      "actual_size": 14,
+      "expected_size": 14,
       "instance": "data/instances/exact/exact049.nw",
-      "outcome": "unsolved"
+      "outcome": "correct"
     },
     {
       "actual_size": null,
@@ -320,10 +320,10 @@
       "outcome": "unsolved"
     },
     {
-      "actual_size": null,
-      "expected_size": null,
+      "actual_size": 10,
+      "expected_size": 10,
       "instance": "data/instances/exact/exact053.nw",
-      "outcome": "unsolved"
+      "outcome": "correct"
     },
     {
       "actual_size": null,
@@ -356,10 +356,10 @@
       "outcome": "correct"
     },
     {
-      "actual_size": null,
-      "expected_size": null,
+      "actual_size": 14,
+      "expected_size": 14,
       "instance": "data/instances/exact/exact059.nw",
-      "outcome": "unsolved"
+      "outcome": "correct"
     },
     {
       "actual_size": null,
@@ -404,10 +404,10 @@
       "outcome": "unsolved"
     },
     {
-      "actual_size": null,
-      "expected_size": null,
+      "actual_size": 13,
+      "expected_size": 13,
       "instance": "data/instances/exact/exact067.nw",
-      "outcome": "unsolved"
+      "outcome": "correct"
     },
     {
       "actual_size": null,
@@ -500,10 +500,10 @@
       "outcome": "unsolved"
     },
     {
-      "actual_size": null,
-      "expected_size": null,
+      "actual_size": 10,
+      "expected_size": 10,
       "instance": "data/instances/exact/exact083.nw",
-      "outcome": "unsolved"
+      "outcome": "correct"
     },
     {
       "actual_size": null,
@@ -566,10 +566,10 @@
       "outcome": "unsolved"
     },
     {
-      "actual_size": null,
-      "expected_size": null,
+      "actual_size": 14,
+      "expected_size": 14,
       "instance": "data/instances/exact/exact094.nw",
-      "outcome": "unsolved"
+      "outcome": "correct"
     },
     {
       "actual_size": null,
@@ -902,13 +902,13 @@
       "outcome": "unsolved"
     }
   ],
-  "correct": 1,
+  "correct": 8,
   "disqualified": false,
   "formula_source": "https://pacechallenge.org/2026/#scoring",
   "ground_truth_review_tasks": [],
   "max_score": 150,
-  "score": 1,
+  "score": 8,
   "total_timeout_seconds": 120.0,
   "track": "exact",
-  "unsolved": 149
+  "unsolved": 142
 }
