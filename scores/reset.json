@@ -1,4 +1,4 @@
 {
-  "epoch": 2,
-  "reason": "Increase total scoring timeout from 1 second to 30 seconds."
+  "epoch": 3,
+  "reason": "Push pre-commit auto-revert policy for wrong known-instance outputs."
 }

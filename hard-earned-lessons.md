@@ -39,3 +39,9 @@ Read this first. Add concise notes whenever something costs time, disk, correctn
 - The pre-push hook only enforces score improvement for pushes whose remote ref is `refs/heads/main`.
 - Use branches for broad solver rewrites that need a fresh or temporarily low score; the improvement gate is a `main` gate, not a branch experimentation gate.
 - A score reset is allowed by changing `scores/reset.json`; this exists so a too-good score caused by a bug does not permanently block `main`.
+
+## 2026-05-12 Auto-Revert On Wrong Known Instances
+
+- The pre-commit hook now runs `scripts/pre-commit.sh`, not `scripts/check-short.sh` directly.
+- If short known-instance checks fail, the hook intentionally runs `git reset --hard HEAD` and `git clean -fd`.
+- This is destructive by design: wrong known-instance output should revert immediately, not linger as a blocked commit.

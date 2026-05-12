@@ -1,5 +1,4 @@
 #!/usr/bin/env sh
 set -eu
 
-exec scripts/check-short.sh
-
+exec scripts/pre-commit.sh
