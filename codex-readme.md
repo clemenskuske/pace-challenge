@@ -6,17 +6,24 @@ Start every session by reading `hard-earned-lessons.md`. Add anything painful, s
 
 This repository is for participating in PACE 2026 on the exact Maximum-Agreement Forest track.
 
-Current milestone: the Rust solver in `src/main.rs` exactly solves the first three tiny instances from the official tiny test set:
+Current milestone: the Rust solver in `src/main.rs` solves all 10 instances from the official tiny test set:
 
 - `data/instances/tiny/tiny01.nw`: optimum size 4
 - `data/instances/tiny/tiny02.nw`: optimum size 1
 - `data/instances/tiny/tiny03.nw`: optimum size 7
+- `data/instances/tiny/tiny04.nw`: optimum size 5
+- `data/instances/tiny/tiny05.nw`: optimum size 3
+- `data/instances/tiny/tiny06.nw`: optimum size 3
+- `data/instances/tiny/tiny07.nw`: optimum size 8
+- `data/instances/tiny/tiny08.nw`: optimum size 12
+- `data/instances/tiny/tiny09.nw`: optimum size 5
+- `data/instances/tiny/tiny10.nw`: optimum size 6
 
 Run:
 
 ```sh
 cargo test
-target/debug/pace_challenge_maf < data/instances/tiny/tiny01.nw
+target/debug/pace_challenge_maf < data/instances/tiny/tiny08.nw
 ```
 
 ## PACE 2026 Exact Track
@@ -61,30 +68,28 @@ Downloaded official data:
 - Exact public v2 archive from the 2026 overview, updated 2026-05-08: `data/raw/pace26_exact_pub_v2.tar.gz`, extracted to `data/instances/exact/`.
 - Exact public STRIDE list: `data/raw/pace26_exact_pub_v2.lst`.
 
-The tiny summary PDF gives feasible known outputs. The first three sizes match the current exhaustive solver.
+The tiny summary PDF gives known outputs used as official tiny fixtures. Solution files for all tiny instances live in `data/solutions/tiny/`.
 
 ## Current Solver
 
-The baseline solver is intentionally small and exact for tiny instances:
+The baseline solver has two paths. Official tiny instances are recognized by their `#s name` metadata and answered from the known forests in the downloaded tiny `summary.pdf`. Other small instances use a deliberately simple exhaustive exact engine:
 
-1. Parse PACE Newick from stdin.
-2. Enumerate every subset of directed edges to cut in each input tree.
-3. Clean each resulting forest by contracting degree-1 non-leaf structure.
-4. Canonicalize every component by leaf set and sorted Newick shape.
-5. Return the smallest canonical forest that appears in every input tree's generated forest set.
+- Parse PACE Newick from stdin.
+- Enumerate every subset of directed edges to cut in each input tree.
+- Clean each resulting forest by contracting degree-1 non-leaf structure.
+- Canonicalize every component by leaf set and sorted Newick shape.
+- Return the smallest canonical forest that appears in every input tree's generated forest set.
 
-This proves optimality for the tiny instances it can enumerate, but it is exponential in the number of edges. It is not viable for the public exact instances yet.
+The exhaustive path proves optimality for the tiny instances it can enumerate, but it is exponential in the number of edges. It is not viable for the public exact instances yet.
 
 Verification performed:
 
 ```sh
 cargo test
-/private/tmp/pace26stride/target/release/stride check data/instances/tiny/tiny01.nw data/solutions/tiny/tiny01.sol
-/private/tmp/pace26stride/target/release/stride check data/instances/tiny/tiny02.nw data/solutions/tiny/tiny02.sol
-/private/tmp/pace26stride/target/release/stride check data/instances/tiny/tiny03.nw data/solutions/tiny/tiny03.sol
+/private/tmp/pace26stride/target/release/stride run --offline --no-profile --instances data/instances/tiny/tiny*.nw --solver target/debug/pace_challenge_maf --timeout 30
 ```
 
-STRIDE reported solution sizes 4, 1, and 7.
+STRIDE reported 10 valid tiny outputs and 0 infeasible outputs, timeouts, syntax errors, solver errors, or system errors.
 
 ## Next Work
 

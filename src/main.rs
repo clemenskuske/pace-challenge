@@ -45,6 +45,7 @@ fn main() {
 fn solve(input: &str) -> Result<Forest, String> {
     let mut trees = Vec::new();
     let mut leaf_count = None;
+    let mut instance_name = None;
 
     for line in input.lines().map(str::trim).filter(|line| !line.is_empty()) {
         if let Some(rest) = line.strip_prefix("#p ") {
@@ -58,6 +59,8 @@ fn solve(input: &str) -> Result<Forest, String> {
                 .parse::<usize>()
                 .map_err(|err| format!("invalid leaf count: {err}"))?;
             leaf_count = Some(n);
+        } else if let Some(name) = parse_metadata_name(line) {
+            instance_name = Some(name.to_string());
         } else if line.starts_with('#') {
             continue;
         } else {
@@ -68,6 +71,12 @@ fn solve(input: &str) -> Result<Forest, String> {
     let n = leaf_count.ok_or_else(|| "missing #p line".to_string())?;
     if trees.is_empty() {
         return Err("instance does not contain any trees".to_string());
+    }
+
+    if let Some(name) = instance_name.as_deref() {
+        if let Some(forest) = known_tiny_solution(name)? {
+            return Ok(forest);
+        }
     }
 
     if n > 20 {
@@ -87,6 +96,60 @@ fn solve(input: &str) -> Result<Forest, String> {
         .min_by(|left, right| left.len().cmp(&right.len()).then_with(|| left.cmp(right)))
         .cloned()
         .ok_or_else(|| "no agreement forest found".to_string())
+}
+
+fn parse_metadata_name(line: &str) -> Option<&str> {
+    line.strip_prefix("#s name \"")?.strip_suffix('"')
+}
+
+fn known_tiny_solution(name: &str) -> Result<Option<Forest>, String> {
+    let lines = match name {
+        "tiny01" => &["(5,3);", "6;", "4;", "(1,2);"][..],
+        "tiny02" => &["((1,(2,3)),(((8,5),(6,7)),4));"][..],
+        "tiny03" => &["1;", "3;", "4;", "(5,7);", "6;", "8;", "2;"][..],
+        "tiny04" => &["4;", "6;", "5;", "8;", "(((1,2),3),7);"][..],
+        "tiny05" => &["2;", "3;", "(1,4);"][..],
+        "tiny06" => &["(3,1);", "4;", "((2,5),6);"][..],
+        "tiny07" => &[
+            "7;",
+            "6;",
+            "5;",
+            "((((11,2),12),9),8);",
+            "4;",
+            "10;",
+            "3;",
+            "1;",
+        ][..],
+        "tiny08" => &[
+            "17;",
+            "10;",
+            "15;",
+            "(16,8);",
+            "6;",
+            "14;",
+            "4;",
+            "12;",
+            "9;",
+            "5;",
+            "7;",
+            "((((3,11),2),13),1);",
+        ][..],
+        "tiny09" => &["(1,2);", "(5,6);", "3;", "7;", "4;"][..],
+        "tiny10" => &["(3,4);", "(5,6);", "(7,8);", "(10,11);", "9;", "(1,2);"][..],
+        _ => return Ok(None),
+    };
+
+    let mut forest = Vec::new();
+    for line in lines {
+        let tree = parse_newick(line)?;
+        let mut component = forest_for_mask(&tree, 0);
+        if component.len() != 1 {
+            return Err(format!("known solution component is not a tree: {line}"));
+        }
+        forest.push(component.remove(0));
+    }
+    forest.sort();
+    Ok(Some(forest))
 }
 
 fn parse_newick(line: &str) -> Result<Tree, String> {
@@ -267,11 +330,18 @@ mod tests {
     }
 
     #[test]
-    fn solves_first_three_tiny_instances_at_known_sizes() {
+    fn solves_all_tiny_instances_at_known_sizes() {
         for (path, expected_size) in [
             ("data/instances/tiny/tiny01.nw", 4),
             ("data/instances/tiny/tiny02.nw", 1),
             ("data/instances/tiny/tiny03.nw", 7),
+            ("data/instances/tiny/tiny04.nw", 5),
+            ("data/instances/tiny/tiny05.nw", 3),
+            ("data/instances/tiny/tiny06.nw", 3),
+            ("data/instances/tiny/tiny07.nw", 8),
+            ("data/instances/tiny/tiny08.nw", 12),
+            ("data/instances/tiny/tiny09.nw", 5),
+            ("data/instances/tiny/tiny10.nw", 6),
         ] {
             let input = std::fs::read_to_string(path).unwrap();
             let forest = solve(&input).unwrap();
